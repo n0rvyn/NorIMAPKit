@@ -18,7 +18,7 @@ import Foundation
 
 // MARK: - IMAPError
 
-nonisolated enum IMAPError: Error, Sendable {
+public nonisolated enum IMAPError: Error, Sendable {
     case authenticationFailed
     case commandFailed(tag: String, text: String)
     case unexpectedResponse(String)
@@ -28,14 +28,18 @@ nonisolated enum IMAPError: Error, Sendable {
 
 // MARK: - IMAPClient
 
-actor IMAPClient {
+public actor IMAPClient {
 
     // MARK: - Constants (Gmail)
 
-    static let gmailHost = "imap.gmail.com"
-    static let gmailPort: UInt16 = 993
-    static let inboxFolder = "INBOX"
-    static let archiveFolder = "[Gmail]/All Mail"
+    public static let gmailHost = "imap.gmail.com"
+    public static let gmailPort: UInt16 = 993
+    public static let inboxFolder = "INBOX"
+    public static let archiveFolder = "[Gmail]/All Mail"
+
+    // MARK: - Init
+
+    public init() {}
 
     // MARK: - Private State
 
@@ -53,7 +57,7 @@ actor IMAPClient {
 
     /// Connects to the IMAP server and reads the greeting.
     /// Must be called before any other method.
-    func connect(host: String, port: UInt16) async throws {
+    public func connect(host: String, port: UInt16) async throws {
         let conn = IMAPConnection(host: host, port: port)
         let greeting = try await conn.connect()
         // Greeting must start with "* OK" (ready) or "* PREAUTH".
@@ -68,7 +72,7 @@ actor IMAPClient {
 
     /// Authenticates using the IMAP LOGIN command.
     /// Throws `IMAPError.authenticationFailed` on `NO` response.
-    func login(email: String, password: String) async throws {
+    public func login(email: String, password: String) async throws {
         let conn = try requireConnection()
         let tag = nextTag()
         // Escape special characters in password using IMAP quoted-string rules.
@@ -90,7 +94,7 @@ actor IMAPClient {
     /// UIDVALIDITY changes when the server has reassigned UIDs (e.g. mailbox rebuild),
     /// meaning all previously cached UIDs for this mailbox are invalid.
     @discardableResult
-    func select(folder: String) async throws -> UInt32 {
+    public func select(folder: String) async throws -> UInt32 {
         let conn = try requireConnection()
         let tag = nextTag()
         try await conn.send("\(tag) SELECT \"\(folder)\"")
@@ -129,7 +133,7 @@ actor IMAPClient {
     /// still returned here so callers can build a complete folder tree.
     ///
     /// Returns an empty array if the server responds with no untagged LIST lines.
-    func listFolders() async throws -> [IMAPFolder] {
+    public func listFolders() async throws -> [IMAPFolder] {
         let conn = try requireConnection()
         let tag = nextTag()
         try await conn.send("\(tag) LIST \"\" \"*\"")
@@ -160,7 +164,7 @@ actor IMAPClient {
     ///   `"ALL"` — all messages in the selected folder
     ///   `"UID \(minUID):*"` — UIDs >= minUID (incremental sync)
     ///   `"SINCE 24-Feb-2026"` — since a date
-    func uidSearch(criteria: String) async throws -> [UInt32] {
+    public func uidSearch(criteria: String) async throws -> [UInt32] {
         let conn = try requireConnection()
         let tag = nextTag()
         try await conn.send("\(tag) UID SEARCH \(criteria)")
@@ -189,7 +193,7 @@ actor IMAPClient {
     /// UIDs are batched into a comma-separated set string, e.g. `"101,102,103"`.
     /// For large batches, callers should chunk into groups of 50 to avoid
     /// exceeding server line-length limits.
-    func uidFetchEnvelope(uids: [UInt32]) async throws -> [IMAPFetchedMessage] {
+    public func uidFetchEnvelope(uids: [UInt32]) async throws -> [IMAPFetchedMessage] {
         guard !uids.isEmpty else { return [] }
         let conn = try requireConnection()
         let tag = nextTag()
@@ -243,7 +247,7 @@ actor IMAPClient {
 
     /// Fetches the raw RFC 2822 body for a single message as a UTF-8 string.
     /// Callers MUST NOT persist this string to disk or SwiftData.
-    func uidFetchBody(uid: UInt32) async throws -> String {
+    public func uidFetchBody(uid: UInt32) async throws -> String {
         let conn = try requireConnection()
         let tag = nextTag()
         try await conn.send("\(tag) UID FETCH \(uid) (BODY.PEEK[])")
@@ -298,7 +302,7 @@ actor IMAPClient {
     ///
     /// Callers MUST NOT persist the result to SwiftData.
     /// The BODYSTRUCTURE contains only metadata (type, size, encoding), not body data.
-    func uidFetchBodyStructure(uid: UInt32) async throws -> IMAPBodyPart? {
+    public func uidFetchBodyStructure(uid: UInt32) async throws -> IMAPBodyPart? {
         let conn = try requireConnection()
         let tag = nextTag()
         try await conn.send("\(tag) UID FETCH \(uid) (BODYSTRUCTURE)")
@@ -333,7 +337,7 @@ actor IMAPClient {
     /// by the caller using `MIMEDecoder` — this method does NOT decode.
     ///
     /// Callers MUST NOT persist the returned `Data` to SwiftData.
-    func uidFetchBodySection(uid: UInt32, section: String) async throws -> Data {
+    public func uidFetchBodySection(uid: UInt32, section: String) async throws -> Data {
         let conn = try requireConnection()
         let tag = nextTag()
         try await conn.send("\(tag) UID FETCH \(uid) (BODY.PEEK[\(section)])")
@@ -374,7 +378,7 @@ actor IMAPClient {
     /// and returns the set of UIDs where at least one of the requested fields is present.
     ///
     /// Used for List-Unsubscribe detection during sync — avoids fetching full bodies.
-    func uidFetchHasHeader(uids: [UInt32], field: String) async throws -> Set<UInt32> {
+    public func uidFetchHasHeader(uids: [UInt32], field: String) async throws -> Set<UInt32> {
         guard !uids.isEmpty else { return [] }
         let conn = try requireConnection()
         let tag = nextTag()
@@ -430,7 +434,7 @@ actor IMAPClient {
     ///   - uid: The message UID.
     ///   - addFlags: Flags to add, e.g. `["\\Seen"]`.
     ///   - removeFlags: Flags to remove.
-    func uidStore(uid: UInt32, addFlags: [String] = [], removeFlags: [String] = []) async throws {
+    public func uidStore(uid: UInt32, addFlags: [String] = [], removeFlags: [String] = []) async throws {
         let conn = try requireConnection()
         if !addFlags.isEmpty {
             let tag = nextTag()
@@ -449,7 +453,7 @@ actor IMAPClient {
     // MARK: - UID COPY (archive)
 
     /// Copies a message to `destinationFolder` (used for archive).
-    func uidCopy(uid: UInt32, to destinationFolder: String) async throws {
+    public func uidCopy(uid: UInt32, to destinationFolder: String) async throws {
         let conn = try requireConnection()
         let tag = nextTag()
         try await conn.send("\(tag) UID COPY \(uid) \"\(destinationFolder)\"")
@@ -462,7 +466,7 @@ actor IMAPClient {
     // MARK: - UID STORE + EXPUNGE (delete)
 
     /// Marks the message `\Deleted` and issues EXPUNGE to remove it permanently.
-    func uidDelete(uid: UInt32) async throws {
+    public func uidDelete(uid: UInt32) async throws {
         try await uidStore(uid: uid, addFlags: ["\\Deleted"])
         let conn = try requireConnection()
         let tag = nextTag()
@@ -473,7 +477,7 @@ actor IMAPClient {
     // MARK: - LOGOUT
 
     /// Sends LOGOUT and closes the connection.
-    func logout() async throws {
+    public func logout() async throws {
         guard let conn = connection else { return }
         let tag = nextTag()
         try? await conn.send("\(tag) LOGOUT")

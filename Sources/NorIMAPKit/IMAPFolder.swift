@@ -12,13 +12,13 @@
 import Foundation
 
 /// A single IMAP mailbox returned by the LIST command.
-nonisolated struct IMAPFolder: Identifiable, Sendable {
+public nonisolated struct IMAPFolder: Identifiable, Sendable {
     /// Stable identifier — the full mailbox name.
-    var id: String { name }
+    public var id: String { name }
     /// Full mailbox name, e.g. "INBOX", "[Gmail]/Sent Mail", "Sent Items".
-    let name: String
+    public let name: String
     /// Hierarchy delimiter, e.g. "/".
-    let delimiter: String
+    public let delimiter: String
     /// RFC 3501 mailbox attribute flags, e.g. ["\\HasNoChildren", "\\Sent"].
-    let flags: [String]
+    public let flags: [String]
 }

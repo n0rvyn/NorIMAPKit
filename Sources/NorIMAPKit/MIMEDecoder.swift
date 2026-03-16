@@ -32,12 +32,12 @@ import Foundation
 /// Safety: if the input contains no `=?` substring, returns it unchanged.
 /// This prevents double-decoding when the IMAP server (e.g. Gmail) already returns
 /// decoded UTF-8 strings in ENVELOPE fields.
-nonisolated enum RFC2047Decoder {
+public nonisolated enum RFC2047Decoder {
 
     /// Decodes all RFC 2047 encoded-words in `input`.
     /// Adjacent encoded-words separated only by whitespace are joined (RFC 2047 §6.2).
     /// Returns the original string unchanged if no encoded-words are found.
-    static func decode(_ input: String) -> String {
+    public static func decode(_ input: String) -> String {
         // Fast path: no encoded-words possible.
         guard input.contains("=?") else { return input }
 
@@ -123,14 +123,14 @@ nonisolated enum RFC2047Decoder {
 ///   - Charset conversion via `Data.stringEncoding(fromCharset:)`
 ///
 /// Fallback: if no text part is found, returns the body with headers stripped.
-nonisolated enum RFC2822Decoder {
+public nonisolated enum RFC2822Decoder {
 
     /// Extracts readable text body from a raw RFC 2822 message string.
     ///
     /// - Parameter rawMessage: Complete RFC 2822 message (headers + body).
     /// - Returns: Decoded text content. Falls back to raw body (headers stripped)
     ///   if MIME parsing fails.
-    static func extractTextBody(_ rawMessage: String) -> String {
+    public static func extractTextBody(_ rawMessage: String) -> String {
         let normalized = rawMessage.replacingOccurrences(of: "\r\n", with: "\n")
         let (headers, body) = splitHeadersAndBody(normalized)
 
@@ -413,7 +413,7 @@ extension Data {
     /// IMAP base64 sections are folded with CRLF or LF every 76 characters.
     /// Whitespace is stripped before decoding. Returns `nil` only if the
     /// resulting string is non-empty but produces no valid base64 data.
-    nonisolated static func decodedFromBase64(string: String) -> Data? {
+    public nonisolated static func decodedFromBase64(string: String) -> Data? {
         // Strip all whitespace (CRLF folding in base64 MIME output).
         let stripped = string.components(separatedBy: .whitespacesAndNewlines).joined()
         guard !stripped.isEmpty else { return Data() }
@@ -432,7 +432,7 @@ extension Data {
     ///   - `=XX` where XX is two hex digits: decoded to the corresponding byte.
     ///   - `=\r\n` or `=\n` (soft line break): remove the `=` and the line ending.
     ///   - All other characters: pass through as UTF-8 bytes.
-    nonisolated static func decodedFromQuotedPrintable(string: String) -> Data {
+    public nonisolated static func decodedFromQuotedPrintable(string: String) -> Data {
         var result = Data()
         var i = string.startIndex
 
@@ -488,7 +488,7 @@ extension Data {
 
     /// Interprets a 7bit or 8bit encoded string as UTF-8 Data.
     /// No transformation needed — the raw bytes are the content.
-    nonisolated static func decodedFrom7bit(string: String) -> Data {
+    public nonisolated static func decodedFrom7bit(string: String) -> Data {
         return Data(string.utf8)
     }
 
@@ -500,7 +500,7 @@ extension Data {
     ///   - utf-8, us-ascii, iso-8859-1, iso-8859-2, gb2312, gbk, gb18030, big5
     ///
     /// Returns `.utf8` for nil or unrecognised charset values.
-    nonisolated static func stringEncoding(fromCharset charset: String?) -> String.Encoding {
+    public nonisolated static func stringEncoding(fromCharset charset: String?) -> String.Encoding {
         guard let charset = charset?.lowercased() else { return .utf8 }
         switch charset {
         case "utf-8", "utf8":

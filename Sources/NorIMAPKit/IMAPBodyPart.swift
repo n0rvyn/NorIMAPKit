@@ -24,7 +24,7 @@ import Foundation
 /// Section paths follow RFC 3501 §6.4.5:
 ///   - Flat single-part message: implied path is "1" (the server accepts "BODY[1]" and "BODY[]" equivalently for single-part messages)
 ///   - First part of multipart: "1", second: "2", nested: "2.1", etc.
-indirect enum IMAPBodyPart: Sendable {
+public indirect enum IMAPBodyPart: Sendable {
 
     /// A non-multipart body part.
     ///

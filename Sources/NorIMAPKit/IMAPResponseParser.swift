@@ -17,33 +17,33 @@ import Foundation
 // MARK: - IMAPTaggedResult
 
 /// The result of a tagged IMAP command response (`A001 OK`/`NO`/`BAD`).
-nonisolated struct IMAPTaggedResult: Sendable {
-    enum Status: Sendable { case ok, no, bad }
-    let tag: String
-    let status: Status
-    let text: String   // Human-readable status text from the server
+public nonisolated struct IMAPTaggedResult: Sendable {
+    public enum Status: Sendable { case ok, no, bad }
+    public let tag: String
+    public let status: Status
+    public let text: String   // Human-readable status text from the server
 }
 
 // MARK: - IMAPFetchedMessage
 
 /// Fields extracted from an IMAP FETCH response for a single message.
 /// Body text is excluded — fetched separately on demand and never persisted.
-nonisolated struct IMAPFetchedMessage: Sendable {
-    let uid: UInt32
-    let subject: String
-    let sender: String       // "Display Name <email@host.com>" or bare "email@host.com"
-    let date: Date
-    let internalDate: Date?  // IMAP INTERNALDATE (server receive time); nil if unparseable
-    let messageId: String    // Message-ID header value (used for dedup)
-    let to: String           // Comma-separated bare To email addresses (empty if none)
-    let cc: String           // Comma-separated bare Cc email addresses (empty if none)
-    let inReplyTo: String    // Value of In-Reply-To header (empty if absent)
-    let isSeen: Bool         // True if the \Seen flag is present
+public nonisolated struct IMAPFetchedMessage: Sendable {
+    public let uid: UInt32
+    public let subject: String
+    public let sender: String       // "Display Name <email@host.com>" or bare "email@host.com"
+    public let date: Date
+    public let internalDate: Date?  // IMAP INTERNALDATE (server receive time); nil if unparseable
+    public let messageId: String    // Message-ID header value (used for dedup)
+    public let to: String           // Comma-separated bare To email addresses (empty if none)
+    public let cc: String           // Comma-separated bare Cc email addresses (empty if none)
+    public let inReplyTo: String    // Value of In-Reply-To header (empty if absent)
+    public let isSeen: Bool         // True if the \Seen flag is present
 }
 
 // MARK: - IMAPResponseParser
 
-nonisolated enum IMAPResponseParser {
+public nonisolated enum IMAPResponseParser {
 
     // MARK: - Tagged Response
 
@@ -52,7 +52,7 @@ nonisolated enum IMAPResponseParser {
     ///
     /// Input example: `"A003 OK [READ-WRITE] SELECT completed"`
     /// Output: `IMAPTaggedResult(tag: "A003", status: .ok, text: "[READ-WRITE] SELECT completed")`
-    static func parseTagged(_ line: String) -> IMAPTaggedResult? {
+    public static func parseTagged(_ line: String) -> IMAPTaggedResult? {
         let parts = line.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: true)
         guard parts.count >= 2 else { return nil }
         let tag = String(parts[0])
@@ -77,7 +77,7 @@ nonisolated enum IMAPResponseParser {
     /// Returns an empty array for `* SEARCH` with no UIDs (mailbox empty or no matches).
     ///
     /// Input example: `"* SEARCH 101 102 103"`
-    static func parseSearchUIDs(_ line: String) -> [UInt32] {
+    public static func parseSearchUIDs(_ line: String) -> [UInt32] {
         // "* SEARCH" followed by zero or more UID integers
         let upper = line.uppercased()
         guard upper.hasPrefix("* SEARCH") else { return [] }
@@ -103,7 +103,7 @@ nonisolated enum IMAPResponseParser {
     /// ```
     ///
     /// Returns `nil` if the lines cannot be parsed (malformed FETCH).
-    static func parseFetchEnvelope(lines: [String]) -> IMAPFetchedMessage? {
+    public static func parseFetchEnvelope(lines: [String]) -> IMAPFetchedMessage? {
         let joined = lines.joined(separator: " ")
 
         // Extract UID
@@ -371,7 +371,7 @@ nonisolated extension IMAPResponseParser {
     ///   `* 5 FETCH (UID 101 BODYSTRUCTURE (("text" "plain" NIL NIL NIL "7bit" 512 10)("application" "pdf" ("name" "report.pdf") NIL NIL "base64" 204800) "mixed"))`
     ///
     /// Returns `nil` if the line contains no parseable BODYSTRUCTURE.
-    static func parseBodyStructure(_ line: String) -> IMAPBodyPart? {
+    public static func parseBodyStructure(_ line: String) -> IMAPBodyPart? {
         // Extract the content between "BODYSTRUCTURE " and the matching closing paren.
         guard let bodyStructContent = extractParenthesised(key: "BODYSTRUCTURE", from: line) else {
             return nil
@@ -618,7 +618,7 @@ nonisolated extension IMAPResponseParser {
     ///   `* LIST (\Noselect) "/" "[Gmail]"`                  → IMAPFolder(name:"[Gmail]", flags:["\\Noselect"])
     ///
     /// Returns `nil` for lines that are not `* LIST` responses or cannot be parsed.
-    static func parseListResponse(_ line: String) -> IMAPFolder? {
+    public static func parseListResponse(_ line: String) -> IMAPFolder? {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         // Must start with "* LIST"
         guard trimmed.uppercased().hasPrefix("* LIST") else { return nil }

@@ -17,7 +17,7 @@ import Network
 
 // MARK: - IMAPConnectionError
 
-nonisolated enum IMAPConnectionError: Error, Sendable {
+public nonisolated enum IMAPConnectionError: Error, Sendable {
     case connectionFailed(String)
     case connectionClosed
     case timeout
