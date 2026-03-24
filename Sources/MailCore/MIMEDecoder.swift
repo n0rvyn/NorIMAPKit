@@ -166,6 +166,46 @@ public nonisolated enum RFC2822Decoder {
         return body.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Extracts both plain text and raw HTML from a raw RFC 2822 message.
+    ///
+    /// - Parameter rawMessage: Complete RFC 2822 message (headers + body).
+    /// - Returns: A tuple of (text: structured plain text for LLM, html: raw HTML for rendering or nil).
+    ///   `text` uses HTMLTextExtractor for HTML bodies (SwiftSoup DOM parsing).
+    ///   `html` is the decoded raw HTML string when the message contains text/html.
+    public static func extractBodies(_ rawMessage: String) -> (text: String, html: String?) {
+        let normalized = rawMessage.replacingOccurrences(of: "\r\n", with: "\n")
+        let (headers, body) = splitHeadersAndBody(normalized)
+
+        guard !body.isEmpty else { return ("", nil) }
+
+        let contentType = extractHeaderValue("content-type", from: headers)?.lowercased() ?? "text/plain"
+
+        if contentType.contains("multipart/") {
+            guard let boundary = extractBoundary(from: contentType) else {
+                return (body.trimmingCharacters(in: .whitespacesAndNewlines), nil)
+            }
+            let result = extractBodiesFromMultipart(body, boundary: boundary, maxDepth: 5)
+            return result
+        }
+
+        let encoding = extractHeaderValue("content-transfer-encoding", from: headers)?.lowercased()
+            .trimmingCharacters(in: .whitespaces) ?? "7bit"
+        let charset = extractCharset(from: contentType)
+
+        if contentType.contains("text/html") {
+            if let decoded = decodePartBody(body, encoding: encoding, charset: charset) {
+                let text = HTMLTextExtractor.extractStructuredText(html: decoded)
+                return (text, decoded)
+            }
+        } else {
+            if let decoded = decodePartBody(body, encoding: encoding, charset: charset) {
+                return (decoded, nil)
+            }
+        }
+
+        return (body.trimmingCharacters(in: .whitespacesAndNewlines), nil)
+    }
+
     // MARK: - Header/Body Splitting
 
     /// Splits a normalized (LF-only) RFC 2822 message at the first blank line.
@@ -296,6 +336,59 @@ public nonisolated enum RFC2822Decoder {
         if let plain = textPlain { return plain }
         if let html = textHTML { return stripHTMLTags(html) }
         return nil
+    }
+
+    /// Extracts both plain text and raw HTML from a multipart body.
+    /// Returns (text, html?) where text is LLM-ready and html is the raw HTML if present.
+    private static func extractBodiesFromMultipart(
+        _ body: String,
+        boundary: String,
+        maxDepth: Int
+    ) -> (text: String, html: String?) {
+        guard maxDepth > 0 else { return ("", nil) }
+
+        let delimiter = "--" + boundary
+        let parts = body.components(separatedBy: delimiter)
+
+        var textPlain: String?
+        var rawHTML: String?
+
+        for part in parts.dropFirst() {
+            if part.hasPrefix("--") { continue }
+
+            let (partHeaders, partBody) = splitHeadersAndBody(part)
+            let partCT = extractHeaderValue("content-type", from: partHeaders)?.lowercased() ?? "text/plain"
+
+            if partCT.contains("multipart/") {
+                if let nestedBoundary = extractBoundary(from: partCT) {
+                    let nested = extractBodiesFromMultipart(partBody, boundary: nestedBoundary, maxDepth: maxDepth - 1)
+                    if !nested.text.isEmpty { return nested }
+                }
+                continue
+            }
+
+            let partEncoding = extractHeaderValue("content-transfer-encoding", from: partHeaders)?
+                .lowercased().trimmingCharacters(in: .whitespaces) ?? "7bit"
+            let partCharset = extractCharset(from: partCT)
+
+            if partCT.contains("text/plain") {
+                if let decoded = decodePartBody(partBody, encoding: partEncoding, charset: partCharset) {
+                    textPlain = decoded
+                }
+            } else if partCT.contains("text/html") {
+                if let decoded = decodePartBody(partBody, encoding: partEncoding, charset: partCharset) {
+                    rawHTML = decoded
+                }
+            }
+        }
+
+        if let plain = textPlain {
+            return (plain, rawHTML)
+        }
+        if let html = rawHTML {
+            return (HTMLTextExtractor.extractStructuredText(html: html), html)
+        }
+        return ("", nil)
     }
 
     // MARK: - Content-Transfer-Encoding Decode

@@ -10,7 +10,7 @@
 // Swift 6: actor isolation ensures commands are serialised.
 
 import Foundation
-import NorIMAPKit
+import MailCore
 
 // MARK: - SMTPError
 

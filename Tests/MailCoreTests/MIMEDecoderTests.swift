@@ -3,7 +3,7 @@
 
 import Testing
 import Foundation
-@testable import NorIMAPKit
+@testable import MailCore
 
 @Suite("MIMEDecoder")
 struct MIMEDecoderTests {

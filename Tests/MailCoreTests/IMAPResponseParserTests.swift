@@ -2,7 +2,7 @@
 // NorIMAPKit
 
 import Testing
-@testable import NorIMAPKit
+@testable import MailCore
 
 @Suite("IMAPResponseParser")
 struct IMAPResponseParserTests {

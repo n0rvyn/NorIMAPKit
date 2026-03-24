@@ -3,8 +3,8 @@
 
 import Testing
 import Foundation
-@testable import NorIMAPKit
-@testable import NorIMAPKitSMTP
+@testable import MailCore
+@testable import MailCoreSMTP
 
 @Suite("SMTPClient")
 struct SMTPClientTests {

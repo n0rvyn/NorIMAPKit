@@ -2,35 +2,41 @@
 import PackageDescription
 
 let package = Package(
-    name: "NorIMAPKit",
+    name: "swift-mail-core",
     platforms: [
         .macOS(.v14),
         .iOS(.v17)
     ],
     products: [
         .library(
-            name: "NorIMAPKit",
-            targets: ["NorIMAPKit"]
+            name: "MailCore",
+            targets: ["MailCore"]
         ),
         .library(
-            name: "NorIMAPKitSMTP",
-            targets: ["NorIMAPKitSMTP"]
+            name: "MailCoreSMTP",
+            targets: ["MailCoreSMTP"]
         ),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.7.0"),
     ],
     targets: [
         .target(
-            name: "NorIMAPKit",
-            path: "Sources/NorIMAPKit"
+            name: "MailCore",
+            dependencies: [
+                .product(name: "SwiftSoup", package: "SwiftSoup"),
+            ],
+            path: "Sources/MailCore"
         ),
         .target(
-            name: "NorIMAPKitSMTP",
-            dependencies: ["NorIMAPKit"],
-            path: "Sources/NorIMAPKitSMTP"
+            name: "MailCoreSMTP",
+            dependencies: ["MailCore"],
+            path: "Sources/MailCoreSMTP"
         ),
         .testTarget(
-            name: "NorIMAPKitTests",
-            dependencies: ["NorIMAPKit", "NorIMAPKitSMTP"],
-            path: "Tests/NorIMAPKitTests"
+            name: "MailCoreTests",
+            dependencies: ["MailCore", "MailCoreSMTP"],
+            path: "Tests/MailCoreTests"
         ),
     ]
 )
