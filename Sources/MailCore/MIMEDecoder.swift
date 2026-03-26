@@ -136,10 +136,12 @@ public nonisolated enum RFC2822Decoder {
 
         guard !body.isEmpty else { return "" }
 
-        let contentType = extractHeaderValue("content-type", from: headers)?.lowercased() ?? "text/plain"
+        let contentTypeRaw = extractHeaderValue("content-type", from: headers) ?? "text/plain"
+        let contentType = contentTypeRaw.lowercased()
 
         if contentType.contains("multipart/") {
-            guard let boundary = extractBoundary(from: contentType) else {
+            // Extract boundary from original-case header; boundaries are case-sensitive (RFC 2045 §5.1).
+            guard let boundary = extractBoundary(from: contentTypeRaw) else {
                 return body.trimmingCharacters(in: .whitespacesAndNewlines)
             }
             if let decoded = extractTextFromMultipart(body, boundary: boundary, maxDepth: 5) {
@@ -150,7 +152,7 @@ public nonisolated enum RFC2822Decoder {
 
         let encoding = extractHeaderValue("content-transfer-encoding", from: headers)?.lowercased()
             .trimmingCharacters(in: .whitespaces) ?? "7bit"
-        let charset = extractCharset(from: contentType)
+        let charset = extractCharset(from: contentTypeRaw)
 
         if contentType.contains("text/html") {
             if let decoded = decodePartBody(body, encoding: encoding, charset: charset) {
@@ -178,10 +180,12 @@ public nonisolated enum RFC2822Decoder {
 
         guard !body.isEmpty else { return ("", nil) }
 
-        let contentType = extractHeaderValue("content-type", from: headers)?.lowercased() ?? "text/plain"
+        let contentTypeRaw = extractHeaderValue("content-type", from: headers) ?? "text/plain"
+        let contentType = contentTypeRaw.lowercased()
 
         if contentType.contains("multipart/") {
-            guard let boundary = extractBoundary(from: contentType) else {
+            // Extract boundary from original-case header; boundaries are case-sensitive (RFC 2045 §5.1).
+            guard let boundary = extractBoundary(from: contentTypeRaw) else {
                 return (body.trimmingCharacters(in: .whitespacesAndNewlines), nil)
             }
             let result = extractBodiesFromMultipart(body, boundary: boundary, maxDepth: 5)
@@ -190,7 +194,7 @@ public nonisolated enum RFC2822Decoder {
 
         let encoding = extractHeaderValue("content-transfer-encoding", from: headers)?.lowercased()
             .trimmingCharacters(in: .whitespaces) ?? "7bit"
-        let charset = extractCharset(from: contentType)
+        let charset = extractCharset(from: contentTypeRaw)
 
         if contentType.contains("text/html") {
             if let decoded = decodePartBody(body, encoding: encoding, charset: charset) {
@@ -307,11 +311,12 @@ public nonisolated enum RFC2822Decoder {
             if part.hasPrefix("--") { continue }
 
             let (partHeaders, partBody) = splitHeadersAndBody(part)
-            let partCT = extractHeaderValue("content-type", from: partHeaders)?.lowercased() ?? "text/plain"
+            let partCTRaw = extractHeaderValue("content-type", from: partHeaders) ?? "text/plain"
+            let partCT = partCTRaw.lowercased()
 
             if partCT.contains("multipart/") {
-                // Nested multipart — recurse.
-                if let nestedBoundary = extractBoundary(from: partCT),
+                // Nested multipart — recurse. Use original-case for boundary extraction.
+                if let nestedBoundary = extractBoundary(from: partCTRaw),
                    let nested = extractTextFromMultipart(partBody, boundary: nestedBoundary, maxDepth: maxDepth - 1) {
                     return nested
                 }
@@ -320,7 +325,7 @@ public nonisolated enum RFC2822Decoder {
 
             let partEncoding = extractHeaderValue("content-transfer-encoding", from: partHeaders)?
                 .lowercased().trimmingCharacters(in: .whitespaces) ?? "7bit"
-            let partCharset = extractCharset(from: partCT)
+            let partCharset = extractCharset(from: partCTRaw)
 
             if partCT.contains("text/plain") {
                 if let decoded = decodePartBody(partBody, encoding: partEncoding, charset: partCharset) {
@@ -357,10 +362,12 @@ public nonisolated enum RFC2822Decoder {
             if part.hasPrefix("--") { continue }
 
             let (partHeaders, partBody) = splitHeadersAndBody(part)
-            let partCT = extractHeaderValue("content-type", from: partHeaders)?.lowercased() ?? "text/plain"
+            let partCTRaw = extractHeaderValue("content-type", from: partHeaders) ?? "text/plain"
+            let partCT = partCTRaw.lowercased()
 
             if partCT.contains("multipart/") {
-                if let nestedBoundary = extractBoundary(from: partCT) {
+                // Use original-case for boundary extraction.
+                if let nestedBoundary = extractBoundary(from: partCTRaw) {
                     let nested = extractBodiesFromMultipart(partBody, boundary: nestedBoundary, maxDepth: maxDepth - 1)
                     if !nested.text.isEmpty { return nested }
                 }
@@ -369,7 +376,7 @@ public nonisolated enum RFC2822Decoder {
 
             let partEncoding = extractHeaderValue("content-transfer-encoding", from: partHeaders)?
                 .lowercased().trimmingCharacters(in: .whitespaces) ?? "7bit"
-            let partCharset = extractCharset(from: partCT)
+            let partCharset = extractCharset(from: partCTRaw)
 
             if partCT.contains("text/plain") {
                 if let decoded = decodePartBody(partBody, encoding: partEncoding, charset: partCharset) {

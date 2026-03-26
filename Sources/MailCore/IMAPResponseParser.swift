@@ -199,19 +199,24 @@ public nonisolated enum IMAPResponseParser {
     }
 
     /// Extracts the content of a parenthesised IMAP structure for `KEY (...)`.
+    /// Returns the content between the matching parens, which may be empty for `()`.
     private static func extractParenthesised(key: String, from text: String) -> String? {
         guard let keyRange = text.range(of: key + " (", options: .caseInsensitive) else { return nil }
         let start = text.index(keyRange.upperBound, offsetBy: -1)  // points to `(`
         var depth = 0
         var idx = start
-        var result: Substring = ""
         while idx < text.endIndex {
             let ch = text[idx]
             if ch == "(" { depth += 1 }
-            if ch == ")" { depth -= 1; if depth == 0 { result = text[text.index(after: start)..<idx]; break } }
+            if ch == ")" {
+                depth -= 1
+                if depth == 0 {
+                    return String(text[text.index(after: start)..<idx])
+                }
+            }
             idx = text.index(after: idx)
         }
-        return result.isEmpty ? nil : String(result)
+        return nil
     }
 
     /// Splits IMAP envelope parenthesised content into its 10 positional parts.
